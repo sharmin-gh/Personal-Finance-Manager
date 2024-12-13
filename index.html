@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal Finance Manager</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f4f8fb;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            font-size: 16px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .input-group input, button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .input-group input:focus, button:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #2980b9;
+        }
+
+        .balance-section p {
+            font-size: 18px;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .calendar-button {
+            padding: 15px;
+            background-color: #ecf0f1;
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: center;
+            transition: background-color 0.3s;
+        }
+
+        .calendar-button:hover {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .calendar-button.selected {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .transaction-details {
+            margin-top: 20px;
+            background-color: #f7f7f7;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-details h4 {
+            margin-bottom: 15px;
+        }
+
+        .transaction-card {
+            background-color: #fff;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .transaction-card p {
+            margin: 5px 0;
+        }
+
+        .month-name {
+            font-size: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Personal Finance Manager</h1>
+
+        <div class="input-group" id="pocketMoneySection">
+            <label for="pocketMoney">Enter Pocket Money (৳):</label>
+            <input type="number" id="pocketMoney" placeholder="Enter pocket money" />
+            <button id="savePocketMoneyBtn">Save Pocket Money</button>
+        </div>
+
+        <div class="input-group" id="modifyPocketMoneySection" style="display: none;">
+            <button id="modifyPocketMoneyBtn">Modify Pocket Money</button>
+        </div>
+
+        <div class="input-group">
+            <label for="dailySpent">Daily Spend (৳):</label>
+            <input type="number" id="dailySpent" placeholder="Enter daily spend" disabled />
+        </div>
+
+        <div class="input-group">
+            <label for="spendCategory">Where did you spend?</label>
+            <input type="text" id="spendCategory" placeholder="e.g., Food, Transport, Entertainment" disabled />
+        </div>
+
+        <button id="saveTransactionBtn" disabled>Save Transaction</button>
+
+        <div class="balance-section">
+            <p>Pocket Money: <span id="currentPocketMoney">৳0</span></p>
+            <p>Total Expenses: <span id="totalExpenses">৳0</span></p>
+            <p>Remaining Balance: <span id="remainingBalance">৳0</span></p>
+        </div>
+
+        <div class="month-name" id="monthName"></div>
+
+        <div class="calendar" id="calendar"></div>
+
+        <div class="transaction-details" id="transactionDetails">
+            <h4>Transaction Details</h4>
+            <div id="transactionList"></div>
+        </div>
+    </div>
+
+    <script>
+        let totalExpenses = 0;
+        let pocketMoney = 0;
+        let balance = 0;
+        const transactions = {};
+        const calendar = document.getElementById('calendar');
+        const savePocketMoneyBtn = document.getElementById('savePocketMoneyBtn');
+        const modifyPocketMoneyBtn = document.getElementById('modifyPocketMoneyBtn');
+        const pocketMoneySection = document.getElementById('pocketMoneySection');
+        const modifyPocketMoneySection = document.getElementById('modifyPocketMoneySection');
+        const dailySpentInput = document.getElementById('dailySpent');
+        const spendCategoryInput = document.getElementById('spendCategory');
+        const saveTransactionBtn = document.getElementById('saveTransactionBtn');
+        const totalExpensesDisplay = document.getElementById('totalExpenses');
+        const remainingBalanceDisplay = document.getElementById('remainingBalance');
+        const currentPocketMoneyDisplay = document.getElementById('currentPocketMoney');
+        const transactionList = document.getElementById('transactionList');
+        const monthNameDisplay = document.getElementById('monthName');
+        let selectedDate = null;
+
+        savePocketMoneyBtn.addEventListener('click', function() {
+            const pocketMoneyValue = parseFloat(document.getElementById('pocketMoney').value);
+            if (!isNaN(pocketMoneyValue) && pocketMoneyValue > 0) {
+                pocketMoney = pocketMoneyValue;
+                currentPocketMoneyDisplay.innerText = `৳${pocketMoney.toFixed(2)}`;
+                pocketMoneySection.style.display = 'none';
+                modifyPocketMoneySection.style.display = 'block';
+                updateBalance();
+            } else {
+                alert("Please enter a valid pocket money amount.");
+            }
+        });
+
+        modifyPocketMoneyBtn.addEventListener('click', function() {
+            pocketMoneySection.style.display = 'block';
+            pocketMoneyInput.value = '';
+            modifyPocketMoneySection.style.display = 'none';
+        });
+
+        saveTransactionBtn.addEventListener('click', function() {
+            if (selectedDate && dailySpentInput.value && spendCategoryInput.value) {
+                const dailySpend = parseFloat(dailySpentInput.value);
+                const category = spendCategoryInput.value.trim();
+                if (!transactions[selectedDate]) {
+                    transactions[selectedDate] = [];
+                }
+                transactions[selectedDate].push({ amount: dailySpend, category: category });
+                totalExpenses += dailySpend;
+                updateBalance();
+
+                dailySpentInput.value = '';
+                spendCategoryInput.value = '';
+                saveTransactionBtn.disabled = true;
+                updateTransactionDetails(selectedDate);
+            } else {
+                alert("Please enter a valid amount and category.");
+            }
+        });
+
+        function updateBalance() {
+            balance = pocketMoney - totalExpenses;
+            totalExpensesDisplay.innerText = `৳${totalExpenses.toFixed(2)}`;
+            remainingBalanceDisplay.innerText = `৳${balance.toFixed(2)}`;
+        }
+
+        function updateTransactionDetails(date) {
+            transactionList.innerHTML = '';
+            if (transactions[date]) {
+                transactions[date].forEach(transaction => {
+                    const transactionDiv = document.createElement('div');
+                    transactionDiv.classList.add('transaction-card');
+                    transactionDiv.innerHTML = `
+                        <p>Date: ${date}</p>
+                        <p>Amount: ৳${transaction.amount.toFixed(2)}</p>
+                        <p>Category: ${transaction.category}</p>
+                    `;
+                    transactionList.appendChild(transactionDiv);
+                });
+            } else {
+                transactionList.innerHTML = '<p>No transactions for this day.</p>';
+            }
+        }
+
+        function generateCalendar() {
+            const currentMonth = new Date();
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const totalDays = lastDay.getDate();
+            const startDay = firstDay.getDay();
+
+            monthNameDisplay.innerText = `${firstDay.toLocaleString('default', { month: 'long' })} ${year}`;
+
+            calendar.innerHTML = '';
+            for (let i = 0; i < startDay; i++) {
+                const emptyCell = document.createElement('div');
+                calendar.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDays; day++) {
+                const dayButton = document.createElement('button');
+                dayButton.classList.add('calendar-button');
+                dayButton.innerText = day;
+
+                dayButton.addEventListener('click', function() {
+                    selectedDate = `${year}-${month + 1}-${day < 10 ? '0' + day : day}`;
+                    document.querySelectorAll('.calendar-button').forEach(button => button.classList.remove('selected'));
+                    dayButton.classList.add('selected');
+                    dailySpentInput.disabled = false;
+                    spendCategoryInput.disabled = false;
+                    saveTransactionBtn.disabled = false;
+                    updateTransactionDetails(selectedDate);
+                });
+
+                calendar.appendChild(dayButton);
+            }
+        }
+
+        generateCalendar();
+    </script>
+
+</body>
+</html>
+
+
+
+
